@@ -16,7 +16,9 @@ function TrackerScreen({
   setReadingBooks, 
   setReadBooks, 
   moveToReading, 
-  moveToRead
+  moveToRead,
+  onAddBook,      // ✅ Принимаем
+  onDeleteBook    // ✅ Принимаем
 }) {
   return (
     <Tab.Navigator
@@ -37,32 +39,32 @@ function TrackerScreen({
         headerShown: false,
       })}
     >
-      {/* Вкладка "Хочу" */}
       <Tab.Screen name="Хочу">
         {(props) => (
-    <WantScreen
-      {...props}
-      books={wantBooks}
-      setBooks={setWantBooks}      
-      moveToReading={moveToReading}
-      moveToRead={moveToRead}
-    />
-  )}
-</Tab.Screen>
+          <WantScreen
+            {...props}
+            books={wantBooks}
+            setBooks={setWantBooks}
+            moveToReading={moveToReading}
+            onAddBook={onAddBook}        // ✅ Передаём дальше
+            onDeleteBook={onDeleteBook}  // ✅ Передаём дальше
+          />
+        )}
+      </Tab.Screen>
 
-      {/* Вкладка "Читаю" — теперь с пропсами */}
-     <Tab.Screen name="Читаю">
-  {(props) => (
-    <ReadingScreen
-      {...props}
-      books={readingBooks}        // <-- Передаём массив
-      setBooks={setReadingBooks}
-      moveToRead={moveToRead}
-    />
-  )}
-</Tab.Screen>
+      <Tab.Screen name="Читаю">
+        {(props) => (
+          <ReadingScreen
+            {...props}
+            books={readingBooks}
+            setBooks={setReadingBooks}
+            moveToRead={moveToRead}
+            onAddBook={onAddBook}        // ✅ Передаём дальше
+            onDeleteBook={onDeleteBook}  // ✅ Передаём дальше
+          />
+        )}
+      </Tab.Screen>
 
-      {/* Вкладка "Прочитал" — теперь с пропсами */}
       <Tab.Screen name="Прочитал">
         {(props) => (
           <ReadScreen
@@ -70,6 +72,8 @@ function TrackerScreen({
             books={readBooks}
             setBooks={setReadBooks}
             showDatePicker={true}
+            onAddBook={onAddBook}        // ✅ Передаём дальше
+            onDeleteBook={onDeleteBook}  // ✅ Передаём дальше
           />
         )}
       </Tab.Screen>

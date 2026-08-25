@@ -41,7 +41,9 @@ function BookListScreen({
     const [showFinishPicker, setShowFinishPicker] = useState(false);
 
  // Функция добавления книги
-    const addBook = () => {
+   // В BookListScreen.js найдите функцию addBook и замените на эту:
+
+const addBook = async () => {
   // Проверяем, что хотя бы одно поле заполнено
   if (bookTitle.trim() === '' && bookAuthor.trim() === '') {
     Alert.alert('Ошибка', 'Введите название или автора');
@@ -50,47 +52,51 @@ function BookListScreen({
 
   // Создаём объект новой книги
   const newBook = {
-    id: Date.now().toString(),
     title: bookTitle.trim() || 'Без названия',
     author: bookAuthor.trim() || 'Автор неизвестен',
-};
-    if (showDatePicker) {
-    newBook.startDate = startDate.toLocaleDateString('ru-RU');
-    newBook.finishDate = finishDate.toLocaleDateString('ru-RU');
+  };
+
+  // Если показываем даты (для "Прочитал")
+  if (showDatePicker) {
+    newBook.start_date = startDate.toLocaleDateString('ru-RU');
+    newBook.finish_date = finishDate.toLocaleDateString('ru-RU');
   }
 
-  // Проверяем, что setBooks — функция, и только тогда вызываем
-  if (typeof setBooks === 'function') {
-    setBooks([...books, newBook]);
-  } else {
-    console.warn('setBooks не является функцией!');
-    // Если setBooks не функция — показываем Alert
-    Alert.alert('Ошибка', 'Не удалось добавить книгу. Попробуйте перезапустить приложение.');
-    return;
-  }
+  try {
+    console.log('📝 BookListScreen: вызываем onAddBook');
+    console.log('📖 Данные книги:', newBook);
+    console.log('📌 onAddBook существует?', typeof onAddBook);
 
-  // Очищаем поля и закрываем модалку
-  setBookTitle('');
-  setBookAuthor('');
-  setModalVisible(false);
+    // Используем переданную функцию для добавления
+    if (typeof onAddBook === 'function') {
+      await onAddBook(newBook, getStatusFromProps());
+      console.log('✅ Книга успешно добавлена через onAddBook');
+    } else {
+      console.warn('⚠️ onAddBook НЕ является функцией! Использую fallback');
+      // Fallback для обратной совместимости
+      const bookWithId = {
+        ...newBook,
+        id: Date.now().toString(),
+      };
+      setBooks([...books, bookWithId]);
+    }
+
+    // Очищаем поля и закрываем модалку
+    setBookTitle('');
+    setBookAuthor('');
+    setModalVisible(false);
+  } catch (error) {
+    console.error('❌ Ошибка при добавлении книги:', error);
+    Alert.alert('Ошибка', 'Не удалось добавить книгу: ' + error.message);
+  }
 };
 
-  // Функция удаления книги
-  const deleteBook = (id) => {
-  Alert.alert('Удалить книгу?', 'Вы уверены?', [
-    { text: 'Отмена', style: 'cancel' },
-    {
-      text: 'Удалить',
-      onPress: () => {
-        if (typeof setBooks === 'function') {
-          setBooks(books.filter((book) => book.id !== id));
-        } else {
-          console.warn('setBooks не является функцией!');
-        }
-      },
-      style: 'destructive',
-    },
-  ]);
+// Добавьте вспомогательную функцию для определения статуса
+const getStatusFromProps = () => {
+  if (title === 'Хочу прочитать') return 'want';
+  if (title === 'Читаю') return 'reading';
+  if (title === 'Прочитал') return 'read';
+  return 'want';
 };
 
   // Рендерим одну книгу в списке
