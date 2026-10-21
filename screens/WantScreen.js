@@ -5,8 +5,11 @@ function WantScreen({
   books, 
   setBooks, 
   moveToReading,
-  onAddBook,      // ✅ Принимаем
-  onDeleteBook    // ✅ Принимаем
+  onAddBook,      
+  onDeleteBook, 
+  navigation,
+  allBooks,
+  onUpdateBook   
 }) {
   return (
     <BookListScreen
@@ -15,8 +18,12 @@ function WantScreen({
       books={books}
       setBooks={setBooks}
       onMoveToReading={moveToReading}
-      onAddBook={onAddBook}        // ✅ Передаём дальше
-      onDeleteBook={onDeleteBook}  // ✅ Передаём дальше
+      onAddBook={onAddBook}       
+      deleteBook={onDeleteBook} 
+      navigation={navigation}
+      onUpdateBook={onUpdateBook}
+      allBooks={allBooks}
+
     />
   );
 }
