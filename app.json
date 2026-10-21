@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "trainer-app",
+    "name": "Трекер чтения",
     "slug": "trainer-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,7 +20,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.skatova.trainerapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,6 +30,11 @@
       "@react-native-community/datetimepicker",
       "expo-status-bar",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2f63e2e0-4aa1-4c84-a608-29939e35b674"
+      }
+    }
   }
 }
