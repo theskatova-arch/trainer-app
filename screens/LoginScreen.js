@@ -72,14 +72,15 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    try {
+        try {
       setLoading(true);
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
         options: {
           data: {
-            username: username.trim()
+            username: username.trim(),
+            display_name: username.trim() // 👈 ДОБАВИЛИ ВОТ ЭТУ СТРОКУ
           }
         }
       });
@@ -134,6 +135,7 @@ export default function LoginScreen({ navigation }) {
                 : 'Начни свой путь в мире книг'}
             </Text>
 
+                        {/* 👇 Поле Никнейма (только при регистрации) 👇 */}
             {!isLogin && (
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>НИКНЕЙМ</Text>
@@ -145,6 +147,7 @@ export default function LoginScreen({ navigation }) {
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   editable={!loading}
+                  maxLength={23} 
                 />
               </View>
             )}

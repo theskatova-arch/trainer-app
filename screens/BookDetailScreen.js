@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { fetchCommunityData } from '../services/bookService';
+import { supabase } from '../lib/supabase'; // 👈 Добавили импорт Supabase
 
 const { width } = Dimensions.get('window');
 
@@ -65,6 +66,10 @@ function ReviewCard({ item }) {
 export default function BookDetailScreen({ route, navigation }) {
   const { book, onUpdateBook, isReadOnly = false } = route.params;
 
+  // 👇 Состояние для полной книги (если открыта из ленты) 👇
+  const [fullBook, setFullBook] = useState(book);
+  const [loadingBook, setLoadingBook] = useState(isReadOnly);
+
   const [review, setReview] = useState(book.review || '');
   const [rating, setRating] = useState(book.rating || 0);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,6 +84,34 @@ export default function BookDetailScreen({ route, navigation }) {
   const [communityData, setCommunityData] = useState({ average: 0, count: 0, reviews: [] });
   const [loadingCommunity, setLoadingCommunity] = useState(true);
 
+  // 👇 ЗАГРУЖАЕМ ПОЛНЫЕ ДАННЫЕ КНИГИ ИЗ БАЗЫ (ЕСЛИ ОТКРЫТО ИЗ ЛЕНТЫ) 👇
+  useEffect(() => {
+    const fetchBookData = async () => {
+      if (isReadOnly && book.id) {
+        try {
+          const { data, error } = await supabase
+            .from('books')
+            .select('*')
+            .eq('id', book.id)
+            .single();
+
+          if (data && !error) {
+            setFullBook(data);
+            setReview(data.review || '');
+            setRating(data.rating || 0);
+            setStartDate(data.start_date || null);
+            setFinishDate(data.finish_date || null);
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки книги из ленты:', error);
+        } finally {
+          setLoadingBook(false);
+        }
+      }
+    };
+    fetchBookData();
+  }, [isReadOnly, book.id]);
+
   const loadCommunity = async () => {
     setLoadingCommunity(true);
     const data = await fetchCommunityData(book.title, book.author);
@@ -90,24 +123,10 @@ export default function BookDetailScreen({ route, navigation }) {
     loadCommunity();
   }, [book.title, book.author]);
 
-  // Функция конвертации строки в Date (для календаря)
   const parseDateString = (dateStr) => {
     if (!dateStr) return new Date();
-    // Пытаемся распарсить строку формата "1 января 2024 г."
-    const months = {
-      'января': 0, 'февраля': 1, 'марта': 2, 'апреля': 3, 'мая': 4, 'июня': 5,
-      'июля': 6, 'августа': 7, 'сентября': 8, 'октября': 9, 'ноября': 10, 'декабря': 11
-    };
-    const parts = dateStr.replace(' г.', '').split(' ');
-    if (parts.length === 3) {
-      const day = parseInt(parts[0], 10);
-      const month = months[parts[1].toLowerCase()];
-      const year = parseInt(parts[2], 10);
-      if (!isNaN(day) && month !== undefined && !isNaN(year)) {
-        return new Date(year, month, day);
-      }
-    }
-    return new Date(dateStr);
+    const parsed = new Date(dateStr);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
   };
 
   const saveChanges = async () => {
@@ -162,6 +181,14 @@ export default function BookDetailScreen({ route, navigation }) {
     );
   };
 
+  if (loadingBook) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={LIME_ACCENT} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.auraPurple} />
@@ -177,8 +204,8 @@ export default function BookDetailScreen({ route, navigation }) {
             <Ionicons name="arrow-back" size={28} color={TEXT_WHITE} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.title} numberOfLines={2}>{book.title}</Text>
-            <Text style={styles.author}>{book.author}</Text>
+            <Text style={styles.title} numberOfLines={2}>{fullBook.title}</Text>
+            <Text style={styles.author}>{fullBook.author}</Text>
           </View>
         </View>
 
@@ -350,7 +377,6 @@ const styles = StyleSheet.create({
     backgroundColor: PURPLE_GLOW,
     opacity: 0.15,
   },
-
   header: { 
     flexDirection: 'row', 
     paddingHorizontal: 20, 
@@ -362,7 +388,6 @@ const styles = StyleSheet.create({
   headerInfo: { flex: 1 },
   title: { fontSize: 24, fontFamily: 'PlusJakartaSans_800ExtraBold', color: TEXT_WHITE, marginBottom: 4 },
   author: { fontSize: 15, fontFamily: 'PlusJakartaSans_400Regular', color: TEXT_MUTED },
-
   block: { 
     marginHorizontal: 16, 
     marginBottom: 16, 
@@ -381,7 +406,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
   },
-  
   row: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
@@ -395,15 +419,10 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: TEXT_WHITE },
   value: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: TEXT_MUTED },
-  dateValueWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  
+  dateValueWrapper: { flexDirection: 'row', alignItems: 'center' },
   ratingSection: { marginTop: 10, marginBottom: 20 },
   starsContainer: { flexDirection: 'row', marginTop: 10, alignItems: 'center' },
   starIcon: { marginRight: 8 },
-  
   inputGroup: { marginBottom: 20, marginTop: 10 },
   input: { 
     backgroundColor: 'rgba(0,0,0,0.3)', 
@@ -417,54 +436,17 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_400Regular'
   },
   textArea: { height: 120, textAlignVertical: 'top' },
-  
-  saveButton: { 
-    backgroundColor: LIME_ACCENT, 
-    padding: 16, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    justifyContent: 'center' 
-  },
+  saveButton: { backgroundColor: LIME_ACCENT, padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   saveButtonText: { color: BG_DARK, fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 16 },
-
   communityRatingContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   communityAverage: { fontSize: 32, fontFamily: 'PlusJakartaSans_800ExtraBold', color: TEXT_WHITE, marginRight: 12 },
   communityStars: { flexDirection: 'row', marginRight: 8 },
   communityCount: { fontSize: 13, fontFamily: 'PlusJakartaSans_400Regular', color: TEXT_MUTED },
   communityPlaceholder: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: TEXT_MUTED, fontStyle: 'italic', marginTop: 8 },
-
-  communityReviewCard: {
-    padding: 16,
-    borderRadius: 16,
-    marginRight: 12,
-    width: width * 0.75, 
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  communityReviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  communityReviewUser: {
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: LIME_ACCENT,
-    fontSize: 14,
-  },
-  communityReviewStars: {
-    flexDirection: 'row',
-  },
-  communityReviewText: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: TEXT_WHITE,
-    lineHeight: 20,
-  },
-  expandButton: {
-    color: LIME_ACCENT,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    fontSize: 13,
-  }
+  communityReviewCard: { padding: 16, borderRadius: 16, marginRight: 12, width: width * 0.75, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  communityReviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  communityReviewUser: { fontFamily: 'PlusJakartaSans_600SemiBold', color: LIME_ACCENT, fontSize: 14 },
+  communityReviewStars: { flexDirection: 'row' },
+  communityReviewText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: TEXT_WHITE, lineHeight: 20 },
+  expandButton: { color: LIME_ACCENT, fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 13 }
 });

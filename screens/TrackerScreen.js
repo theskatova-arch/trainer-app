@@ -30,7 +30,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
   return (
     <View style={[styles.tabBarContainer, { bottom: insets.bottom > 0 ? insets.bottom + 10 : 20 }]}>
-      <BlurView intensity={40} tint="dark" style={styles.tabBarGlass}>
+      <BlurView 
+        intensity={100} // 👈 Максимальное размытие
+        tint="dark" 
+        style={[
+          styles.tabBarGlass, 
+          { backgroundColor: 'rgba(9, 9, 11, 0.95)' } 
+        ]}
+      >
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
 
@@ -150,7 +157,7 @@ function TrackerScreen({
               navigation={navigation}
               books={readBooks}
               setBooks={setReadBooks}
-              showDatePicker={true}
+              // 👇 УБРАЛИ ОТСЮДА showDatePicker={true}, так как он уже встроен в ReadScreen
               onAddBook={onAddBook}        
               onDeleteBook={onDeleteBook} 
               onUpdateBook={onUpdateBook} 
@@ -207,7 +214,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    //backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   tabItemWrapper: {
     flex: 1,          

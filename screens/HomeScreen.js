@@ -64,16 +64,19 @@ export default function HomeScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Шапка с приветствием и шестеренкой */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.greeting}>Доброе утро,</Text>
-            <Text style={styles.username}>{username}.</Text>
+                <View style={styles.headerRow}>
+          {/* 👇 Добавили flex: 1, чтобы текст занимал только свободное место 👇 */}
+                    <View style={{ flex: 1, marginRight: 10 }}>
+            <Text style={styles.greeting}>Привет,</Text>
+            <Text 
+              style={styles.username} 
+              numberOfLines={2} // 👈 Разрешаем 2 строки
+            >
+              {username}.
+            </Text>
           </View>
           
-          <TouchableOpacity 
-            style={styles.settingsBtn} 
-            onPress={() => navigation.navigate('Settings')}
-          >
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate('Settings')}>
             <Ionicons name="settings-outline" size={24} color={TEXT_WHITE} />
           </TouchableOpacity>
         </View>

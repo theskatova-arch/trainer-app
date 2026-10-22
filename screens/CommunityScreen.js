@@ -90,6 +90,8 @@ function CommunityScreen({ navigation }) {
       actionText = 'оставил(а) отзыв на книгу';
     } else if (item.action_type === 'rated') {
       actionText = 'поставил(а) оценку книге';
+    } else if (item.action_type === 'reviewed_and_rated') {
+      actionText = 'оценил(а) и оставил(а) отзыв на книгу'; // 👈 Добавили текст
     } else if (isGoalEvent) {
       actionText = item.book_title; 
     }
@@ -173,7 +175,7 @@ function CommunityScreen({ navigation }) {
           </Text>
         </View>
 
-        {item.action_type === 'rated' && item.rating && (
+          {(item.action_type === 'rated' || item.action_type === 'reviewed_and_rated') && item.rating && (
           <View style={styles.ratingRow}>
             {[1, 2, 3, 4, 5].map((star) => (
               <Ionicons 
@@ -187,7 +189,7 @@ function CommunityScreen({ navigation }) {
           </View>
         )}
 
-        {item.action_type === 'reviewed' && reviewText ? (
+          {(item.action_type === 'reviewed' || item.action_type === 'reviewed_and_rated') && reviewText ? (
           <View style={styles.reviewBox}>
             <Text style={styles.reviewText} numberOfLines={isExpanded ? undefined : 3}>
               {reviewText}

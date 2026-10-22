@@ -4,22 +4,22 @@ import BookListScreen from './BookListScreen';
 function ReadScreen({ 
   books, 
   setBooks, 
-  showDatePicker,
   navigation,
   onUpdateBook,
-  onDeleteBook  
-   
+  onDeleteBook,
+  onAddBook   
 }) {
   return (
     <BookListScreen
       title="Прочитал"
       iconName="checkmark-circle"
-      books={books}        // <-- Передаём массив
-      setBooks={setBooks}  // <-- Передаём функцию
-      showDatePicker={showDatePicker}
+      books={books}        
+      setBooks={setBooks}  
+      showDatePicker={true} // 👈 Оставили только один пропс (он всегда true для этой вкладки)
       navigation={navigation}
       onUpdateBook={onUpdateBook}
       deleteBook={onDeleteBook}
+      onAddBook={onAddBook}
     />
   );
 }

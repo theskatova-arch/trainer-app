@@ -148,12 +148,21 @@ export default function MyGoalScreen({ navigation }) {
     setBookLayout({ shelves, sizes });
   };
 
-  useEffect(() => {
+    useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        setLoading(true);
+
+        // 👇 ЗАПУСКАЕМ ЗАПРОСЫ ПАРАЛЛЕЛЬНО (одновременно) 👇
+        const [userResponse, allBooks] = await Promise.all([
+          supabase.auth.getUser(),
+          fetchBooks()
+        ]);
+
+        const user = userResponse.data?.user;
         let currentGoal = 5;
         
+        // 1. Быстро достаем цель из уже полученного объекта пользователя
         if (user) {
           const savedGoal = user.user_metadata?.reading_goal;
           if (savedGoal) {
@@ -162,16 +171,17 @@ export default function MyGoalScreen({ navigation }) {
           }
         }
 
-        const allBooks = await fetchBooks();
+        // 2. Считаем книги
         const currentYear = new Date().getFullYear();
-
-        const readThisYear = allBooks.filter(book => {
+        const readThisYear = (allBooks || []).filter(book => {
           if (book.status !== 'read' || !book.finish_date) return false;
-          return book.finish_date.includes(currentYear.toString());
+          return String(book.finish_date).includes(currentYear.toString());
         });
 
         const readCount = readThisYear.length;
         setBooksReadThisYear(readCount);
+        
+        // 3. Генерируем раскладку полок
         generateLayout(currentGoal, readCount);
 
       } catch (error) {

@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { fetchUserBooks } from '../services/bookService';
+import { supabase } from '../lib/supabase'; // 👈 Добавили импорт
 
 // Палитра 2027
 const LIME_ACCENT = '#B2D100';
@@ -25,21 +26,48 @@ export default function UserProfileScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('want'); 
   const [books, setBooks] = useState([]);
+  
+  // 👇 Новые состояния для цели 👇
+  const [goal, setGoal] = useState(0);
+  const [readThisYear, setReadThisYear] = useState(0);
 
   useEffect(() => {
-    loadUserBooks();
+    loadData();
   }, []);
 
-  const loadUserBooks = async () => {
+    const loadData = async () => {
     setLoading(true);
-    const userBooks = await fetchUserBooks(userId);
-    setBooks(userBooks);
-    setLoading(false);
+    
+    try {
+      // 1. Получаем книги пользователя
+      const userBooks = await fetchUserBooks(userId);
+      setBooks(userBooks);
+
+      // 2. Считаем прочитанные за текущий год
+      const currentYear = new Date().getFullYear();
+      const read = userBooks.filter(b => {
+        if (b.status !== 'read' || !b.finish_date) return false;
+        return String(b.finish_date).includes(currentYear.toString());
+      });
+      setReadThisYear(read.length);
+
+      // 3. Получаем цель из метаданных пользователя
+      const { data: goalData, error: goalError } = await supabase.rpc('get_user_goal', { target_user_id: userId });
+      
+      console.log('🎯 Цель из базы:', goalData);
+      if (goalError) console.error('Ошибка получения цели:', goalError);
+      
+      if (goalData) setGoal(goalData);
+
+    } catch (error) {
+      console.error('Ошибка загрузки данных профиля:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredBooks = books.filter(b => b.status === activeTab);
 
-  // 👇 Обновленный renderBookItem (Стеклянная карточка) 👇
   const renderBookItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.bookItemWrapper}
@@ -64,7 +92,6 @@ export default function UserProfileScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Фоновые ауры */}
       <View style={styles.auraPurple} />
       <View style={styles.auraLime} />
 
@@ -76,7 +103,14 @@ export default function UserProfileScreen({ route, navigation }) {
         <View style={{ width: 28 }} />
       </View>
 
-      {/* Стеклянные вкладки */}
+      {/* 👇 БЛОК ЦЕЛИ 👇 */}
+      <BlurView intensity={20} tint="dark" style={styles.goalBlock}>
+        <Text style={styles.goalTitle}>Цель на год</Text>
+        <Text style={styles.goalText}>
+          Прочитано: <Text style={styles.goalHighlight}>{readThisYear}</Text> книг из <Text style={styles.goalHighlight}>{goal || '—'}</Text>
+        </Text>
+      </BlurView>
+
       <BlurView intensity={20} tint="dark" style={styles.tabsContainer}>
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'want' && styles.activeTab]} 
@@ -165,7 +199,37 @@ const styles = StyleSheet.create({
     color: TEXT_WHITE 
   },
 
-  // Стеклянные вкладки
+  // 👇 Стили для блока цели 👇
+  goalBlock: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(178, 209, 0, 0.3)',
+    backgroundColor: 'rgba(178, 209, 0, 0.05)',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  goalTitle: {
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: TEXT_MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  goalText: {
+    fontSize: 16,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: TEXT_WHITE,
+  },
+  goalHighlight: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    color: LIME_ACCENT,
+    fontSize: 18,
+  },
+
   tabsContainer: { 
     flexDirection: 'row', 
     marginHorizontal: 20, 
@@ -185,7 +249,7 @@ const styles = StyleSheet.create({
   },
   activeTab: { 
     borderBottomColor: LIME_ACCENT,
-    backgroundColor: 'rgba(204, 255, 0, 0.05)', // Легкий неоновый фон для активной вкладки
+    backgroundColor: 'rgba(178, 209, 0, 0.05)',
   },
   tabText: { 
     fontSize: 14, 
@@ -194,12 +258,11 @@ const styles = StyleSheet.create({
   },
   activeTabText: { 
     color: TEXT_WHITE,
-    textShadowColor: 'rgba(204, 255, 0, 0.5)',
+    textShadowColor: 'rgba(178, 209, 0, 0.5)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
   },
 
-  // Список
   listContent: { paddingHorizontal: 20, paddingBottom: 40, zIndex: 2 },
   
   bookItemWrapper: {
@@ -218,13 +281,13 @@ const styles = StyleSheet.create({
   coverPlaceholder: { 
     width: 40, 
     height: 56, 
-    backgroundColor: 'rgba(204, 255, 0, 0.1)', 
+    backgroundColor: 'rgba(178, 209, 0, 0.1)', 
     borderRadius: 8, 
     justifyContent: 'center', 
     alignItems: 'center', 
     marginRight: 16,
     borderWidth: 1,
-    borderColor: 'rgba(204, 255, 0, 0.3)'
+    borderColor: 'rgba(178, 209, 0, 0.3)'
   },
   coverText: { 
     color: LIME_ACCENT, 
