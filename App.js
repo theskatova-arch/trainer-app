@@ -12,6 +12,8 @@ import CommunityScreen from './screens/CommunityScreen';
 import UserProfileScreen from './screens/UserProfileScreen';
 import MyGoalScreen from './screens/MyGoalScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import WhatToReadScreen from './screens/WhatToReadScreen';
+import CategoryScreen from './screens/CategoryScreen';
 
 import { useFonts } from 'expo-font';
 import { PlayfairDisplay_700Bold, PlayfairDisplay_400Regular } from '@expo-google-fonts/playfair-display';
@@ -292,7 +294,7 @@ function App() {
           ) : (
             <>
               <Stack.Screen name="Home" options={{ headerShown: false }}>
-                {(props) => <HomeScreen {...props} user={user} />}
+                {(props) => <HomeScreen {...props} user={user} wantBooks={wantBooks} onMoveToReading={moveToReading} allBooks={[...wantBooks, ...readingBooks, ...readBooks]} />}
               </Stack.Screen>
 
               <Stack.Screen name="Community" component={CommunityScreen} options={{ headerShown: false }} />
@@ -326,6 +328,12 @@ function App() {
               </Stack.Screen>
 
               <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="WhatToRead" component={WhatToReadScreen} options={{ headerShown: false }} />
+              <Stack.Screen 
+                  name="CategoryScreen"
+                  component={CategoryScreen} 
+                  options={{ headerShown: false }} 
+/>
             </>
           )}
         </Stack.Navigator>

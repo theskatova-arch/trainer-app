@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Linking 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  Platform, 
+  Linking 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { supabase } from '../lib/supabase';
-import { fetchBooks } from '../services/bookService'; // 👈 Импортируем получение книг
+import { fetchBooks } from '../services/bookService';
 
 const LIME_ACCENT = '#B2D100'; 
 const PURPLE_GLOW = '#6B46C1';
@@ -14,9 +20,9 @@ const TEXT_WHITE = '#FFFFFF';
 const TEXT_MUTED = '#A0A0B0';
 const BG_DARK = '#09090B';
 
-export default function HomeScreen({ navigation }) {
+
+export default function HomeScreen({ navigation, user, wantBooks = [], onMoveToReading, allBooks = [] }) {
   const [currentUser, setCurrentUser] = useState(null);
-  // 👇 Состояния для цели и прогресса 👇
   const [goal, setGoal] = useState(0);
   const [readThisYear, setReadThisYear] = useState(0);
 
@@ -48,12 +54,11 @@ export default function HomeScreen({ navigation }) {
     return unsubscribe;
   }, [navigation]);
 
-    const username = currentUser?.user_metadata?.username 
+  const username = currentUser?.user_metadata?.username 
     || currentUser?.user_metadata?.display_name 
     || currentUser?.user_metadata?.['Display name'] 
     || (currentUser?.email ? currentUser.email.split('@')[0] : 'Читатель');
   
-  // Считаем процент выполнения цели для полоски прогресса
   const progressPercent = goal > 0 ? Math.min((readThisYear / goal) * 100, 100) : 0;
 
   return (
@@ -64,14 +69,10 @@ export default function HomeScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Шапка с приветствием и шестеренкой */}
-                <View style={styles.headerRow}>
-          {/* 👇 Добавили flex: 1, чтобы текст занимал только свободное место 👇 */}
-                    <View style={{ flex: 1, marginRight: 10 }}>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1, marginRight: 10 }}>
             <Text style={styles.greeting}>Привет,</Text>
-            <Text 
-              style={styles.username} 
-              numberOfLines={2} // 👈 Разрешаем 2 строки
-            >
+            <Text style={styles.username} numberOfLines={2}>
               {username}.
             </Text>
           </View>
@@ -91,7 +92,6 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.goalLabel}>ЦЕЛЬ НА ГОД</Text>
             </View>
             
-            {/* 👇 ВЫВОДИМ РЕАЛЬНЫЕ ЦИФРЫ 👇 */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
               <Text style={styles.goalNumber}>{goal > 0 ? goal : '—'}</Text>
               <Text style={styles.goalUnit}> книг</Text>
@@ -101,7 +101,6 @@ export default function HomeScreen({ navigation }) {
               {goal > 0 ? `Прочитано: ${readThisYear} из ${goal}` : 'Нажми, чтобы установить цель'}
             </Text>
             
-            {/* Полоска прогресса */}
             <View style={styles.progressTrack}>
               <View style={[styles.progressBar, { width: `${progressPercent}%` }]} />
             </View>
@@ -127,6 +126,28 @@ export default function HomeScreen({ navigation }) {
             </BlurView>
           </TouchableOpacity>
         </View>
+
+        {/* НОВАЯ КНОПКА "ЧТО ПОЧИТАТЬ" */}
+        <TouchableOpacity 
+          style={styles.whatToReadCard} 
+          activeOpacity={0.9} 
+          onPress={() => navigation.navigate('WhatToRead', { 
+            wantBooks: wantBooks, 
+            onMoveToReading: onMoveToReading,
+            allBooks: allBooks 
+          })}
+        >
+          <BlurView intensity={20} tint="dark" style={styles.whatToReadGlass}>
+            <View style={styles.whatToReadIcon}>
+              <Ionicons name="sparkles" size={28} color={LIME_ACCENT} />
+            </View>
+            <View style={styles.whatToReadText}>
+              <Text style={styles.cardTitle}>Что почитать?</Text>
+              <Text style={styles.cardSub}>Полная библиотека приложения</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={TEXT_MUTED} />
+          </BlurView>
+        </TouchableOpacity>
 
         {/* Блок с юмором от ИИ и переходом в ТГ */}
         <BlurView intensity={20} tint="dark" style={styles.aiBlock}>
@@ -163,7 +184,9 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 },
   settingsBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   greeting: { fontSize: 18, fontFamily: 'PlusJakartaSans_400Regular', color: TEXT_MUTED, marginBottom: 4 },
-  username: { fontSize: 42, fontFamily: 'PlusJakartaSans_800ExtraBold', color: TEXT_WHITE, letterSpacing: -1 },
+  
+  // 👇 Уменьшили размер шрифта и добавили lineHeight для двух строк 👇
+  username: { fontSize: 32, fontFamily: 'PlusJakartaSans_800ExtraBold', color: TEXT_WHITE, letterSpacing: -0.5, lineHeight: 38 },
   
   sectionTitle: { fontSize: 20, fontFamily: 'PlusJakartaSans_600SemiBold', color: TEXT_WHITE, marginTop: 20, marginBottom: 16 },
 
@@ -174,17 +197,43 @@ const styles = StyleSheet.create({
   goalLabel: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: LIME_ACCENT, letterSpacing: 1 },
   
   goalNumber: { fontSize: 56, fontFamily: 'PlusJakartaSans_800ExtraBold', color: TEXT_WHITE, lineHeight: 60 },
-  goalUnit: { fontSize: 20, fontFamily: 'PlusJakartaSans_600SemiBold', color: TEXT_MUTED, marginLeft: 6 }, // 👈 Стиль для слова "книг" рядом с цифрой
+  goalUnit: { fontSize: 20, fontFamily: 'PlusJakartaSans_600SemiBold', color: TEXT_MUTED, marginLeft: 6 },
   goalSub: { fontSize: 15, fontFamily: 'PlusJakartaSans_400Regular', color: TEXT_MUTED, marginBottom: 24 },
   
   progressTrack: { height: 8, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 4, overflow: 'hidden' },
   progressBar: { height: '100%', borderRadius: 4, backgroundColor: LIME_ACCENT },
 
-  grid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
+  grid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   gridCardWrapper: { width: '48%', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' },
   glassCardSmall: { padding: 20, backgroundColor: 'rgba(255, 255, 255, 0.02)', height: 140, justifyContent: 'space-between' },
   cardTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: TEXT_WHITE, marginBottom: 4 },
   cardSub: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: TEXT_MUTED },
+
+  whatToReadCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(178, 209, 0, 0.3)',
+    marginBottom: 30,
+    backgroundColor: 'rgba(178, 209, 0, 0.05)',
+  },
+  whatToReadGlass: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  whatToReadIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(178, 209, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  whatToReadText: {
+    flex: 1,
+  },
 
   aiBlock: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(107, 70, 193, 0.3)', backgroundColor: 'rgba(107, 70, 193, 0.1)', padding: 24, marginTop: 10 },
   aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
