@@ -7,7 +7,8 @@ function ReadingScreen({
   moveToRead,
   onUpdateBook,
   onDeleteBook,  
-  navigation  }) {
+  navigation,
+  onAddBook  }) {
   return (
     <BookListScreen
       title="Читаю"
@@ -18,6 +19,7 @@ function ReadingScreen({
       onUpdateBook={onUpdateBook}
       deleteBook={onDeleteBook}  
       navigation={navigation}  
+      onAddBook={onAddBook}
     />
   );
 }

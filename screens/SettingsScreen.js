@@ -13,6 +13,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { logout } from '../services/bookService';
 
 const LIME_ACCENT = '#B2D100'; 
 const PURPLE_GLOW = '#6B46C1';
@@ -82,6 +83,15 @@ export default function SettingsScreen({ navigation, user, onUpdateUser }) {
     }
   };
 
+      const handleLogout = async () => {
+    try {
+      await logout();
+      // App.js автоматически перекинет на экран логина
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось выйти: ' + error.message);
+    }
+  };
+
   const updatePassword = async () => {
     if (newPassword.length < 6) {
       Alert.alert('Ошибка', 'Пароль должен содержать минимум 6 символов');
@@ -130,6 +140,7 @@ export default function SettingsScreen({ navigation, user, onUpdateUser }) {
               onChangeText={setUsername}
               placeholder="Введите никнейм"
               placeholderTextColor={TEXT_MUTED}
+              maxLength={23}
             />
           </View>
 
@@ -178,6 +189,16 @@ export default function SettingsScreen({ navigation, user, onUpdateUser }) {
             {loadingPassword ? <ActivityIndicator color={BG_DARK} /> : <Text style={styles.saveButtonText}>СМЕНИТЬ ПАРОЛЬ</Text>}
           </TouchableOpacity>
         </BlurView>
+
+        {/* 👇 КНОПКА ВЫХОДА 👇 */}
+        <TouchableOpacity 
+          style={styles.logoutButton} 
+          onPress={handleLogout}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#FF3B30" style={{ marginRight: 8 }} />
+          <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+        </TouchableOpacity>
+
 
       </ScrollView>
     </View>
@@ -254,5 +275,22 @@ const styles = StyleSheet.create({
     color: BG_DARK, 
     fontFamily: 'PlusJakartaSans_800ExtraBold', 
     fontSize: 15 
+  },
+    logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 59, 48, 0.1)', // Легкий красный фон
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.3)',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 10,
+    marginBottom: 40,
+  },
+  logoutButtonText: {
+    color: '#FF3B30',
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 16,
   },
 });

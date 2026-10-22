@@ -115,22 +115,25 @@ export const saveToGlobalBooks = async (title, author, cover_url) => {
   }
 };
 
-// ✅ Поиск книги (ТОЛЬКО Глобальная база, внешний API отключен)
+
+// ✅ Поиск книги (ТОЛЬКО Глобальная база, с поддержкой Ё/Е)
 export const searchBooksOnline = async (query) => {
   try {
     const cleanQuery = query.trim();
     if (!cleanQuery) return [];
 
-    // Запрос только к Supabase
+    // Приводим запрос к нижнему регистру и меняем ё на е
+    const normalizedQuery = cleanQuery.toLowerCase().replace(/ё/g, 'е');
+
+    // 👇 Ищем по новой колонке search_title 👇
     const { data: localResponse, error: localError } = await supabase
       .from('global_books')
       .select('*')
-      .ilike('title', `%${cleanQuery}%`)
+      .ilike('search_title', `%${normalizedQuery}%`) 
       .limit(10);
 
     if (localError) throw localError;
 
-    // Обрабатываем результат из Supabase
     let localResults = [];
     if (localResponse) {
       localResults = localResponse.map(book => ({
@@ -138,7 +141,7 @@ export const searchBooksOnline = async (query) => {
         title: book.title,
         author: book.author,
         cover: book.cover_url,
-        isLocal: true // Все результаты теперь из базы
+        isLocal: true 
       }));
     }
 
@@ -149,6 +152,8 @@ export const searchBooksOnline = async (query) => {
     return [];
   }
 };
+
+searchBooksOnline
 
 // ✅ Получить книги конкретного пользователя (для профиля)
 export const fetchUserBooks = async (userId) => {
@@ -279,6 +284,9 @@ export const logActivity = async (action_type, book, extraData = {}) => {
     console.error('❌ Ошибка добавления в ленту:', error);
   }
 };
+
+
+
 
 // ✅ Получить ленту событий
 export const fetchActivityFeed = async () => {

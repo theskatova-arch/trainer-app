@@ -119,9 +119,8 @@ function App() {
     }
   };
 
-    const handleUpdateBook = async (id, updates) => {
+  const handleUpdateBook = async (id, updates) => {
     try {
-      // Находим книгу в текущем стейте, чтобы сравнить старые данные с новыми
       const currentBook = readBooks.find(b => b.id === id) 
                        || readingBooks.find(b => b.id === id) 
                        || wantBooks.find(b => b.id === id);
@@ -134,18 +133,47 @@ function App() {
       const updatedReadBooks = readBooks.map(b => b.id === id ? updated : b);
       setReadBooks(updatedReadBooks);
 
-      // 👇 ЛОГИРУЕМ ОЦЕНКУ ТОЛЬКО ЕСЛИ ОНА ИЗМЕНИЛАСЬ 👇
-      if (updates.rating !== undefined && currentBook && currentBook.rating !== updates.rating) {
-        await logActivity('rated', updated, { rating: updates.rating });
-      }
-      
-      // 👇 ЛОГИРУЕМ ОТЗЫВ ТОЛЬКО ЕСЛИ ОН ИЗМЕНИЛСЯ 👇
-      if (updates.review !== undefined && currentBook && currentBook.review !== updates.review.trim() && updates.review.trim() !== '') {
-        await logActivity('reviewed', updated, { review_text: updates.review });
-      }
+            // 👇 ЛОГИКА ДЛЯ ЛЕНТЫ 👇
+      if (updates.status === 'read' && currentBook?.status !== 'read') {
+        
+        // 👇 Определяем тип события: отзыв, оценка или просто завершение 👇
+        let actionType = 'finished'; // По умолчанию
+        
+        if (updates.rating && updates.review) {
+          actionType = 'reviewed_and_rated';
+        } else if (updates.rating) {
+          actionType = 'rated';
+        } else if (updates.review) {
+          actionType = 'reviewed';
+        }
+        
+        await logActivity(actionType, updated, { 
+          rating: updates.rating || null,
+          review_text: updates.review || null
+        });
 
-      if (updates.status === 'read') {
         await checkAndLogGoal(updatedReadBooks);
+            } else {
+        // 👇 ОБЪЕДИНЯЕМ ОЦЕНКУ И ОТЗЫВ ДЛЯ КАРТОЧКИ КНИГИ 👇
+        const ratingChanged = updates.rating !== undefined && currentBook && currentBook.rating !== updates.rating;
+        const reviewChanged = updates.review !== undefined && updates.review && currentBook && currentBook.review !== updates.review.trim();
+
+        if (ratingChanged || reviewChanged) {
+          // Берем новые данные, если они изменились, иначе — старые
+          const finalRating = ratingChanged ? updates.rating : currentBook?.rating;
+          const finalReview = reviewChanged ? updates.review : currentBook?.review;
+
+          // Определяем тип события
+          let actionType = 'finished';
+          if (finalRating && finalReview) actionType = 'reviewed_and_rated';
+          else if (finalRating) actionType = 'rated';
+          else if (finalReview) actionType = 'reviewed';
+
+          await logActivity(actionType, updated, { 
+            rating: finalRating || null,
+            review_text: finalReview || null
+          });
+        }
       }
       
       return updated;
@@ -157,14 +185,27 @@ function App() {
 
   const handleAddBook = async (bookData, status) => {
     try {
-      const newBook = await addBook({ ...bookData, status });
+      const dataToSave = { ...bookData, status };
 
-      if (!bookData.isFromApi) {
-        try {
-          await saveToGlobalBooks(newBook.title, newBook.author, newBook.cover_url);
-        } catch (globalError) {
-          console.error('Не удалось сохранить в global_books:', globalError);
-        }
+      if (status === 'read' && !dataToSave.finish_date) {
+        dataToSave.finish_date = new Date().toLocaleDateString('ru-RU', {
+          day: 'numeric', month: 'long', year: 'numeric',
+        });
+      }
+
+      if (status === 'reading' && !dataToSave.start_date) {
+        dataToSave.start_date = new Date().toLocaleDateString('ru-RU', {
+          day: 'numeric', month: 'long', year: 'numeric',
+        });
+      }
+
+      const newBook = await addBook(dataToSave);
+
+      try {
+        await saveToGlobalBooks(newBook.title, newBook.author, newBook.cover_url);
+        console.log('✅ Книга проверена/сохранена в global_books:', newBook.title);
+      } catch (globalError) {
+        console.error('❌ Не удалось сохранить в global_books:', globalError);
       }
 
       if (status === 'want') {
@@ -174,11 +215,11 @@ function App() {
       } else if (status === 'read') {
         const updatedReadBooks = [newBook, ...readBooks];
         setReadBooks(updatedReadBooks);
+        // При добавлении сразу в "Прочитал" создаем запись "закончил читать"
         await logActivity('finished', newBook);
-        
         await checkAndLogGoal(updatedReadBooks);
       }
-
+      
       return newBook;
     } catch (error) {
       console.error('Ошибка добавления книги:', error);
@@ -215,8 +256,6 @@ function App() {
       const updatedReadBooks = [updatedBook, ...readBooks];
       setReadingBooks((prev) => prev.filter((b) => b.id !== book.id));
       setReadBooks(updatedReadBooks);
-
-      await logActivity('finished', updatedBook);
       
       await checkAndLogGoal(updatedReadBooks);
 
@@ -275,7 +314,6 @@ function App() {
                     onDeleteBook={handleDeleteBook}  
                     onRefresh={loadBooks} 
                     onUpdateBook={handleUpdateBook}
-                    
                   />
                 )}
               </Stack.Screen>
